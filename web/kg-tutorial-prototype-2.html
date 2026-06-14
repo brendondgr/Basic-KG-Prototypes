@@ -1,0 +1,371 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Knowledge Graph Tutorial | Dev Edition</title>
+  <style>
+    :root {
+      /* Professional Dev Palette - OKLCH */
+      --bg: oklch(18% 0.01 250);
+      --surface: oklch(22% 0.01 250);
+      --surface-light: oklch(26% 0.01 250);
+      --fg: oklch(92% 0.01 250);
+      --muted: oklch(65% 0.02 250);
+      --border: oklch(30% 0.01 250);
+      --accent: oklch(68% 0.18 260); /* Electric Indigo */
+      --accent-glow: oklch(68% 0.18 260 / 20%);
+
+      --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-display);
+      background-color: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header: Command Bar Style */
+    header {
+      height: 60px;
+      background: rgba(30, 30, 35, 0.7);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .header-actions {
+      display: flex;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      gap: 4px;
+    }
+
+    button {
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    button:hover {
+      color: var(--fg);
+      background: var(--surface);
+    }
+
+    button.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* Layout Structure */
+    main {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel {
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #left-panel {
+      width: 420px;
+      min-width: 320px;
+      max-width: 600px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 32px 24px;
+      z-index: 2;
+    }
+
+    /* The Blueprint Canvas */
+    #right-panel {
+      flex: 1;
+      background-color: var(--bg);
+      position: relative;
+      overflow: hidden;
+      background-image: 
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* Canvas Axis Markers */
+    .canvas-axis {
+      position: absolute;
+      background: var(--border);
+      opacity: 0.5;
+    }
+    .axis-x { top: 0; left: 0; width: 100%; height: 1px; }
+    .axis-y { top: 0; left: 0; width: 1px; height: 100%; }
+
+    /* Resizer with Handle */
+    .resizer {
+      width: 6px;
+      cursor: col-resize;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .resizer:hover, .resizer.dragging {
+      background: var(--accent);
+    }
+
+    .resizer::after {
+      content: '||';
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--muted);
+      transform: rotate(90deg);
+      opacity: 0.5;
+    }
+
+    /* Tutorial Typography & Components */
+    .tutorial-step {
+      margin-bottom: 40px;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .step-number {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--accent);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+    }
+
+    .tutorial-step h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--fg);
+      letter-spacing: -0.01em;
+    }
+
+    .tutorial-step p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .code-container {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .code-header {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      background: oklch(30% 0.01 250);
+      border: 1px solid var(--border);
+      border-bottom: 0;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-r { background: #ff5f56; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #27c93f; }
+
+    .code-block {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: oklch(20% 0.01 250);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 0 0 6px 6px;
+      color: #a9b1d6;
+      line-height: 1.5;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .syntax-keyword { color: #c678dd; }
+    .syntax-func { color: #61afef; }
+    .syntax-str { color: #98c379; }
+
+    .canvas-empty-state {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .canvas-empty-state svg {
+      width: 64px;
+      height: 64px;
+      opacity: 0.2;
+      margin-bottom: 12px;
+      stroke: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">Knowledge Graph Tutorial</div>
+    <div class="header-actions">
+      <button class="active">Neo4J</button>
+      <button>Gremlin</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="left-panel" class="panel">
+      <div class="tutorial-step">
+        <div class="step-header">
+          <div class="step-number">01</div>
+          <h2>Graph Fundamentals</h2>
+        </div>
+        <p>Unlike tabular data, Knowledge Graphs represent information as <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges). This allows for complex, recursive querying.</p>
+        <p>Every piece of data is stored as a <i>Triple</i>: <br><code>(Subject) &mdash; [Predicate] &mdash; (Object)</code></p>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="step-header">
+          <div class="step-number">02</div>
+          <h2>Ingestion Pipeline</h2>
+        </div>
+        <p>To populate a graph from a relational source, we use a <strong>Schema-First</strong> approach to map vertices and edges.</p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          </div>
+          <div class="code-block"><span>LOAD</strong> csv.file("data.csv") 
+<span>AS</span> line
+<span>MERGE</span> (p:Person {id: line.id})
+<span>CREATE</span> (p)-[:LIVES_IN]->(:City {name: line.city});</div>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="step-header">
+          <div class="step-number">03</div>
+          <h2>Querying with Cypher</h2>
+        </div>
+        <p>The power of KGs lies in <strong>Pattern Matching</strong>. Find all people who live in a city where a specific company is headquartered:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          </div>
+          <div class="code-block"><span class="syntax-keyword">MATCH</span> (p:Person)-[:LIVES_IN]->(c:City)
+<span class="syntax-keyword">MATCH</span> (com:Company)-[:HQ_IN]->(c)
+<span class="syntax-keyword">RETURN</span> p.name, com.name;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="resizer" id="resizer"></div>
+
+    <div id="right-panel" class="panel">
+      <div class="canvas-axis axis-x"></div>
+      <div class="canvas-axis axis-y"></div>
+      <div class="canvas-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"/></svg>
+        <div>Graph Workspace initialized. Ready for render.</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const resizer = document.getElementById('resizer');
+    const leftPanel = document.getElementById('left-panel');
+    let isDragging = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const newWidth = e.clientX;
+      if (newWidth >= 320 && newWidth <= 600) {
+        leftPanel.style.width = `${newWidth}px`;
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = 'default';
+    });
+  </script>
+</body>
+</html>
+</main>
