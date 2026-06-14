@@ -26,7 +26,7 @@
       --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
     }
 
-    /* Gremlin Theme Overrides (Purple / Magenta / Neon green highlights) */
+    /* Gremlin Theme Overrides (Purple / Magenta) */
     body.mode-gremlin {
       --accent: oklch(68% 0.22 310);
       --accent-glow: oklch(68% 0.22 310 / 25%);
@@ -304,7 +304,6 @@
     .syntax-keyword { color: #f7768e; font-weight: 600; }
     .syntax-func { color: #7aa2f7; }
     .syntax-str { color: #9ece6a; }
-    .syntax-comment { color: #565f89; font-style: italic; }
 
     /* Playground Table CSS */
     .playground-section {
@@ -474,7 +473,7 @@
     /* Simulation overlay status in bottom-left of canvas */
     .sim-status-overlay {
       position: absolute;
-      bottom: 24px;
+      top: 24px;
       left: 24px;
       background: rgba(22, 22, 26, 0.85);
       border: 1px solid var(--border);
@@ -488,7 +487,7 @@
       z-index: 10;
       transition: all 0.3s ease;
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(-10px);
       pointer-events: none;
     }
 
@@ -551,6 +550,75 @@
       color: white;
     }
 
+    /* Glassmorphic Backend Output Terminal */
+    .console-panel {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      right: 324px; /* Stop before Inspector Panel */
+      height: 160px;
+      background: rgba(12, 12, 16, 0.85);
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      z-index: 9;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .console-header {
+      background: rgba(22, 22, 26, 0.9);
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: justify;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .console-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .console-btn {
+      background: var(--surface-light);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--fg);
+      font-family: var(--font-display);
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .console-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .console-body {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #a9b1d6;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      background: #09090b;
+    }
+
     /* D3 Styling */
     .link-line {
       stroke: var(--border);
@@ -576,7 +644,6 @@
       text-anchor: middle;
       pointer-events: none;
       transition: fill 0.3s, opacity 0.3s;
-      background: var(--bg);
     }
 
     .link-label.highlighted {
@@ -749,17 +816,11 @@
             <div class="step-number">02</div>
             <h2>Declarative Query Ingestion</h2>
           </div>
-          <p>To insert nodes and create relationships in Neo4j, we use **Cypher**, a declarative language. Below, we write a MERGE query to match or create relationships:</p>
-          <div class="code-container">
-            <div class="code-header">
-              <div class="code-header-dots">
-                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-              </div>
-              <div class="code-lang">Cypher</div>
-            </div>
-            <div class="code-block"><span class="syntax-keyword">LOAD CSV</span> FROM <span class="syntax-str">"data.csv"</span> AS line
-<span class="syntax-keyword">MERGE</span> (p:Person {id: line.id})
-<span class="syntax-keyword">CREATE</span> (p)-[:LIVES_IN]->(:City {name: line.city});</div>
+          <p>To load nodes and create relationships in Neo4j, we run loading scripts using **Cypher**, a declarative language. Click below to inspect the real Python driver load code:</p>
+          <div class="action-row" style="margin-top: 0px; margin-bottom: 24px; justify-content: flex-start;">
+            <button class="sim-play-btn" onclick="fetchIngestionCode('neo4j')">
+              <span>🗎</span> Inspect Ingestion Script
+            </button>
           </div>
         </div>
 
@@ -776,12 +837,12 @@
               </div>
               <div class="code-lang">Cypher</div>
             </div>
-            <div class="code-block"><span class="syntax-keyword">MATCH</span> (p:Person)-[:LIVES_IN]->(c:City)
+            <div class="code-block" id="tutorial-cypher-query"><span class="syntax-keyword">MATCH</span> (p:Person)-[:LIVES_IN]->(c:City)
 <span class="syntax-keyword">MATCH</span> (com:Company)-[:HQ_IN]->(c)
 <span class="syntax-keyword">RETURN</span> p.name, com.name;</div>
           </div>
           <div class="action-row">
-            <button class="sim-play-btn" onclick="runSimulation('cypher_match')">
+            <button class="sim-play-btn" onclick="runTutorialSimulation('tutorial-cypher-query')">
               <span>▶</span> Run Match Simulation
             </button>
           </div>
@@ -808,17 +869,11 @@
             <div class="step-number">02</div>
             <h2>Imperative Traversal Ingestion</h2>
           </div>
-          <p>In Gremlin, mutations are expressed step-by-step as traversals that add vertices and connect them with edges:</p>
-          <div class="code-container">
-            <div class="code-header">
-              <div class="code-header-dots">
-                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-              </div>
-              <div class="code-lang">Gremlin</div>
-            </div>
-            <div class="code-block">g.addV(<span class="syntax-str">"Person"</span>).property(<span class="syntax-str">"name"</span>, <span class="syntax-str">"Alice"</span>).as(<span class="syntax-str">"a"</span>)
- .addV(<span class="syntax-str">"City"</span>).property(<span class="syntax-str">"name"</span>, <span class="syntax-str">"New York"</span>).as(<span class="syntax-str">"c"</span>)
- .addE(<span class="syntax-str">"LIVES_IN"</span>).from(<span class="syntax-str">"a"</span>).to(<span class="syntax-str">"c"</span>).iterate()</div>
+          <p>In Gremlin, mutations are expressed step-by-step as traversals that add vertices and connect them with edges. Click below to inspect the real Python loading script:</p>
+          <div class="action-row" style="margin-top: 0px; margin-bottom: 24px; justify-content: flex-start;">
+            <button class="sim-play-btn" onclick="fetchIngestionCode('gremlin')">
+              <span>🗎</span> Inspect Ingestion Script
+            </button>
           </div>
         </div>
 
@@ -835,12 +890,10 @@
               </div>
               <div class="code-lang">Gremlin</div>
             </div>
-            <div class="code-block">g.V().hasLabel(<span class="syntax-str">"Person"</span>)
-   .out(<span class="syntax-str">"LIVES_IN"</span>)
-   .values(<span class="syntax-str">"name"</span>)</div>
+            <div class="code-block" id="tutorial-gremlin-query">g.V().hasLabel(<span class="syntax-str">"Person"</span>).out(<span class="syntax-str">"LIVES_IN"</span>).values(<span class="syntax-str">"name"</span>)</div>
           </div>
           <div class="action-row">
-            <button class="sim-play-btn" onclick="runSimulation('gremlin_simple_traverse')">
+            <button class="sim-play-btn" onclick="runTutorialSimulation('tutorial-gremlin-query')">
               <span>▶</span> Run Traversal Simulation
             </button>
           </div>
@@ -850,7 +903,7 @@
       <!-- ================= SYNTAX PLAYGROUND ================= -->
       <div class="playground-section">
         <h3>Syntax Playground</h3>
-        <p class="desc">Execute standard CRUD and multi-hop queries. Click the play button to simulate execution on the graph.</p>
+        <p class="desc">Execute standard CRUD and multi-hop queries. Click the play button to submit to the Flask server and run the live traversal.</p>
         
         <table class="playground-table">
           <thead>
@@ -866,37 +919,37 @@
               <td class="op-name">Insert Node/Vertex</td>
               <td class="neo4j-only"><code><span class="syntax-keyword">CREATE</span> (:Person {name: "Dave"})</code></td>
               <td class="gremlin-only"><code>g.addV(<span class="syntax-str">"Person"</span>).prop("name","Dave")</code></td>
-              <td><button class="row-play-btn" onclick="runSimulation('op_insert_node')">▶</button></td>
+              <td><button class="row-play-btn" onclick="runPlaygroundSimulation('play-row-insert-node')">▶</button></td>
             </tr>
             <tr id="play-row-insert-edge">
               <td class="op-name">Insert Relationship/Edge</td>
               <td class="neo4j-only"><code>(alice)-[:KNOWS]->(charlie)</code></td>
               <td class="gremlin-only"><code>g.addE(<span class="syntax-str">"KNOWS"</span>).from(a).to(c)</code></td>
-              <td><button class="row-play-btn" onclick="runSimulation('op_insert_edge')">▶</button></td>
+              <td><button class="row-play-btn" onclick="runPlaygroundSimulation('play-row-insert-edge')">▶</button></td>
             </tr>
             <tr id="play-row-fetch">
               <td class="op-name">Fetch Node/Vertex</td>
               <td class="neo4j-only"><code><span class="syntax-keyword">MATCH</span> (n) <span class="syntax-keyword">WHERE</span> n.name = <span class="syntax-str">"Alice"</span></code></td>
               <td class="gremlin-only"><code>g.V().has(<span class="syntax-str">"name"</span>, <span class="syntax-str">"Alice"</span>)</code></td>
-              <td><button class="row-play-btn" onclick="runSimulation('op_fetch_node')">▶</button></td>
+              <td><button class="row-play-btn" onclick="runPlaygroundSimulation('play-row-fetch')">▶</button></td>
             </tr>
             <tr id="play-row-delete">
               <td class="op-name">Delete Node/Vertex</td>
               <td class="neo4j-only"><code><span class="syntax-keyword">MATCH</span> (c) <span class="syntax-keyword">DETACH DELETE</span> c</code></td>
               <td class="gremlin-only"><code>g.V().has(<span class="syntax-str">"name"</span>, <span class="syntax-str">"Charlie"</span>).drop()</code></td>
-              <td><button class="row-play-btn" onclick="runSimulation('op_delete_node')">▶</button></td>
+              <td><button class="row-play-btn" onclick="runPlaygroundSimulation('play-row-delete')">▶</button></td>
             </tr>
             <tr id="play-row-traverse-n">
               <td class="op-name">Traverse N Hops</td>
               <td class="neo4j-only"><code>(bob)-[:KNOWS]->()-[:WORKS_AT]->(co)</code></td>
               <td class="gremlin-only"><code>g.V(bob).out(<span class="syntax-str">"KNOWS"</span>).out(<span class="syntax-str">"WORKS_AT"</span>)</code></td>
-              <td><button class="row-play-btn" onclick="runSimulation('op_traverse_hops')">▶</button></td>
+              <td><button class="row-play-btn" onclick="runPlaygroundSimulation('play-row-traverse-n')">▶</button></td>
             </tr>
             <tr id="play-row-reverse">
               <td class="op-name">Reverse Traverse</td>
               <td class="neo4j-only"><code>(ny)<-[:LIVES_IN]-(p)</code></td>
               <td class="gremlin-only"><code>g.V(ny).in(<span class="syntax-str">"LIVES_IN"</span>)</code></td>
-              <td><button class="row-play-btn" onclick="runSimulation('op_reverse_traverse')">▶</button></td>
+              <td><button class="row-play-btn" onclick="runPlaygroundSimulation('play-row-reverse')">▶</button></td>
             </tr>
           </tbody>
         </table>
@@ -938,6 +991,18 @@
         </div>
       </div>
 
+      <!-- Glassmorphic Backend Output Terminal -->
+      <div class="console-panel" id="console-panel">
+        <div class="console-header">
+          <div class="console-title" id="console-title">Backend Output Terminal</div>
+          <div style="display: flex; gap: 8px;">
+            <button class="console-btn" onclick="triggerReset()">Reset Database State</button>
+            <button class="console-btn" onclick="clearConsole()">Clear Logs</button>
+          </div>
+        </div>
+        <div class="console-body" id="console-body">[System] Ready. Click run or play on any query to see backend execution logs...</div>
+      </div>
+
       <!-- Simulation Status Overlay -->
       <div class="sim-status-overlay" id="sim-status-overlay">
         <div class="sim-status-title">
@@ -956,14 +1021,12 @@
 
   <!-- Load D3.js -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <!-- Load Mock Graph Data -->
-  <script src="graph-data.js"></script>
 
   <script>
     // State Management
     let currentMode = 'neo4j'; // 'neo4j' or 'gremlin'
     let activeSimulationTimeout = null;
-    let originalData = window.KNOWLEDGE_GRAPH_DATA;
+    let originalData = { nodes: [], links: [] };
     let graphNodes = [];
     let graphLinks = [];
     
@@ -976,7 +1039,7 @@
       isDragging = true;
       resizer.classList.add('dragging');
       document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none'; // Prevent selection while dragging
+      document.body.style.userSelect = 'none';
     });
 
     window.addEventListener('mousemove', (e) => {
@@ -984,7 +1047,6 @@
       const newWidth = e.clientX;
       if (newWidth >= 380 && newWidth <= 600) {
         leftPanel.style.width = `${newWidth}px`;
-        // Resize SVG viewport
         updateSvgDimensions();
       }
     });
@@ -1012,17 +1074,18 @@
         document.body.classList.add('mode-neo4j');
         neo4jToggleBtn.classList.add('active');
         gremlinToggleBtn.classList.remove('active');
+        document.getElementById('console-title').innerText = "Backend Output Terminal - Neo4j / Cypher";
       } else {
         document.body.classList.remove('mode-neo4j');
         document.body.classList.add('mode-gremlin');
         gremlinToggleBtn.classList.add('active');
         neo4jToggleBtn.classList.remove('active');
+        document.getElementById('console-title').innerText = "Backend Output Terminal - Gremlin / TinkerPop";
       }
       
-      // Update D3 theme marker colors
       updateMarkerThemeColor();
-      // Reset Inspector Panel labels
       hideInspector();
+      logToConsole(`[System] Swapped active paradigm to ${mode.toUpperCase()}.`);
     }
 
     neo4jToggleBtn.addEventListener('click', () => setMode('neo4j'));
@@ -1042,14 +1105,13 @@
     
     svg.call(zoom);
 
-    // Grid pattern definitions and arrows
+    // Defs for arrows
     const defs = svg.append("defs");
     
-    // Add Marker for directed edges
     defs.append("marker")
       .attr("id", "arrow-default")
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 0) // We calculate dynamic link offsets instead, keep marker at tip
+      .attr("refX", 0)
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
@@ -1070,44 +1132,54 @@
       .attr("d", "M0,-4L9,0L0,4")
       .attr("class", "arrow-marker highlighted");
 
-    // D3 force simulation setup
+    // force simulation setup
     let width = document.getElementById('right-panel').clientWidth;
     let height = document.getElementById('right-panel').clientHeight;
     
     const simulation = d3.forceSimulation()
       .force("link", d3.forceLink().id(d => d.id).distance(140))
       .force("charge", d3.forceManyBody().strength(-350))
-      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("center", d3.forceCenter(width / 2, height / 2 - 50)) // Shift center up slightly to fit console
       .force("collide", d3.forceCollide().radius(45));
 
     function updateSvgDimensions() {
       width = document.getElementById('right-panel').clientWidth;
       height = document.getElementById('right-panel').clientHeight;
-      simulation.force("center", d3.forceCenter(width / 2, height / 2));
+      simulation.force("center", d3.forceCenter(width / 2, height / 2 - 50));
       simulation.alpha(0.3).restart();
     }
     
     window.addEventListener("resize", updateSvgDimensions);
 
-    // Initial Render of the Graph
-    function initGraph() {
-      // Clear container
-      container.html("");
-      
-      // Clone nodes and links
-      graphNodes = originalData.nodes.map(d => ({ ...d }));
-      graphLinks = originalData.links.map(d => ({ ...d }));
-      
-      updateGraph();
-      
-      // Initial zoom fit
-      svg.transition().duration(500).call(
-        zoom.transform,
-        d3.zoomIdentity.translate(20, 20).scale(0.9)
-      );
+    // Fetch and initialize Graph
+    function fetchAndInitGraph() {
+      logToConsole("[System] Loading graph database state from Flask backend API...");
+      fetch('/api/graph')
+        .then(res => {
+          if (!res.ok) throw new Error("Server error loading data");
+          return res.json();
+        })
+        .then(data => {
+          originalData = data;
+          graphNodes = data.nodes.map(d => ({ ...d }));
+          graphLinks = data.links.map(d => ({ ...d }));
+          
+          container.html("");
+          updateGraph();
+          
+          // Initial zoom fit
+          svg.transition().duration(500).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(20, 20).scale(0.85)
+          );
+          logToConsole(`[System] Ingested Property Graph from backend: ${graphNodes.length} nodes, ${graphLinks.length} edges successfully loaded.`);
+        })
+        .catch(err => {
+          logToConsole(`[System ERROR] Failed to fetch graph from backend: ${err.message}. Make sure Flask is running.`);
+        });
     }
 
-    let linkElements, nodeElements, textElements, subtextElements, linkLabels;
+    let linkElements, nodeElements, linkLabels;
 
     function updateGraph() {
       // Render links
@@ -1120,7 +1192,7 @@
         .on("mouseover", (event, d) => showLinkInspector(d))
         .on("mouseout", hideInspector);
 
-      // Render link labels (placed at midpoints)
+      // Render link labels
       linkLabels = container.selectAll(".link-label")
         .data(graphLinks, d => d.id)
         .join("text")
@@ -1128,7 +1200,7 @@
         .attr("id", d => `link-label-${d.id}`)
         .text(d => d.type);
 
-      // Render nodes as group (circle + text)
+      // Render nodes
       nodeElements = container.selectAll(".node-group")
         .data(graphNodes, d => d.id)
         .join(
@@ -1160,18 +1232,14 @@
         .on("mouseover", (event, d) => showNodeInspector(d))
         .on("mouseout", hideInspector);
 
-      // Bind simulation data
       simulation.nodes(graphNodes);
       simulation.force("link").links(graphLinks);
       simulation.alpha(0.8).restart();
 
-      // Tick listener
       simulation.on("tick", () => {
-        // Update nodes translation
         container.selectAll(".node-group")
           .attr("transform", d => `translate(${d.x},${d.y})`);
 
-        // Compute direct link source-target paths, cutting off lines at node radius (20px) to show arrowheads properly
         linkElements.attr("d", d => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
@@ -1179,7 +1247,6 @@
           
           if (dr === 0) return "";
           
-          // Cut line short by target node radius (20px) + arrow padding (6px)
           const targetOffset = 26;
           const sourceOffset = 20;
           
@@ -1191,14 +1258,12 @@
           return `M${sourceX},${sourceY}L${targetX},${targetY}`;
         });
 
-        // Update link label position to center of path
         linkLabels
           .attr("x", d => (d.source.x + d.target.x) / 2)
           .attr("y", d => (d.source.y + d.target.y) / 2 - 4);
       });
     }
 
-    // Drag behavior for D3 force layout
     function drag(sim) {
       function dragstarted(event) {
         if (!event.active) sim.alphaTarget(0.3).restart();
@@ -1223,7 +1288,6 @@
         .on("end", dragended);
     }
 
-    // Dynamic marker colors based on current mode
     function updateMarkerThemeColor() {
       const arrowMarkers = document.querySelectorAll(".arrow-marker.highlighted");
       arrowMarkers.forEach(el => {
@@ -1232,7 +1296,7 @@
     }
 
 
-    // Inspector Card UI Interactions
+    // Inspector Card UI
     const inspectorCard = document.getElementById("inspector-card");
     const inspectorTitle = document.getElementById("inspector-title-type");
     const inspectorLabel = document.getElementById("inspector-label-tag");
@@ -1253,7 +1317,6 @@
           </div>
         `;
       });
-      
       inspectorCard.classList.add("active");
     }
 
@@ -1261,7 +1324,6 @@
       inspectorTitle.innerText = currentMode === 'neo4j' ? 'Relationship' : 'Edge';
       inspectorLabel.innerText = link.type;
       
-      // Determine link name representation
       const sourceName = typeof link.source === 'object' ? link.source.name : link.source;
       const targetName = typeof link.target === 'object' ? link.target.name : link.target;
       inspectorName.innerText = `${sourceName} ➔ ${targetName}`;
@@ -1275,7 +1337,6 @@
           </div>
         `;
       });
-      
       inspectorCard.classList.add("active");
     }
 
@@ -1284,7 +1345,57 @@
     }
 
 
-    // Simulation / Animation Pipeline
+    // Terminal Console Logging
+    const consoleBody = document.getElementById("console-body");
+
+    function logToConsole(text) {
+      consoleBody.innerHTML += "\n" + text;
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
+
+    function clearConsole() {
+      consoleBody.innerHTML = "[System] Output Terminal cleared.";
+    }
+
+    function triggerReset() {
+      logToConsole("[System] Reset requested. Sending command to Flask...");
+      fetch('/api/reset', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            stopSimulation();
+            originalData = data.graph;
+            graphNodes = data.graph.nodes.map(d => ({ ...d }));
+            graphLinks = data.graph.links.map(d => ({ ...d }));
+            container.html("");
+            updateGraph();
+            logToConsole(`[System SUCCESS] Database successfully reloaded from CSVs! Graph reset.`);
+          } else {
+            logToConsole(`[System ERROR] Reset failed: ${data.message}`);
+          }
+        })
+        .catch(err => {
+          logToConsole(`[System ERROR] Reset failed: ${err.message}`);
+        });
+    }
+
+    // Ingestion Inbound Code Inspector
+    function fetchIngestionCode(paradigm) {
+      logToConsole(`[System] Fetching real loader connection scripts for ${paradigm.toUpperCase()}...`);
+      fetch(`/api/ingestion-code/${paradigm}`)
+        .then(res => res.json())
+        .then(data => {
+          logToConsole("------------------------------------------------------------------");
+          logToConsole(data.code);
+          logToConsole("------------------------------------------------------------------");
+        })
+        .catch(err => {
+          logToConsole(`[System ERROR] Failed to fetch ingestion script: ${err.message}`);
+        });
+    }
+
+
+    // Query Simulation execution
     const simOverlay = document.getElementById("sim-status-overlay");
     const simTitleText = document.getElementById("sim-status-title-text");
     const simTextDesc = document.getElementById("sim-status-text");
@@ -1312,12 +1423,48 @@
       container.selectAll(".node-subtext").classed("faded", false);
     }
 
-    function runSimulation(simId) {
-      stopSimulation(); // Reset any currently running sim
-      
-      const simulationSteps = window.GRAPH_SIMULATIONS[simId];
-      if (!simulationSteps) return;
+    function runTutorialSimulation(elementId) {
+      const el = document.getElementById(elementId);
+      const queryText = el.innerText || el.textContent;
+      runBackendSimulation(queryText);
+    }
 
+    function runPlaygroundSimulation(rowId) {
+      const row = document.getElementById(rowId);
+      const codeElement = row.querySelector(currentMode === 'neo4j' ? '.neo4j-only code' : '.gremlin-only code');
+      const queryText = codeElement.innerText || codeElement.textContent;
+      runBackendSimulation(queryText);
+    }
+
+    function runBackendSimulation(queryString) {
+      stopSimulation();
+      
+      logToConsole(`[System] Sending query to backend API for execution...`);
+      
+      fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryString, paradigm: currentMode })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Backend query failed");
+        return res.json();
+      })
+      .then(data => {
+        // Output logs returned by Flask
+        logToConsole(data.logs);
+        
+        // Execute animation steps
+        playVisualSteps(data.steps);
+      })
+      .catch(err => {
+        logToConsole(`[System ERROR] Query Execution failed: ${err.message}`);
+      });
+    }
+
+    function playVisualSteps(simulationSteps) {
+      if (!simulationSteps || simulationSteps.length === 0) return;
+      
       simOverlay.classList.add("active");
       simTitleText.innerText = "Simulation Playing...";
       
@@ -1328,18 +1475,16 @@
           simTitleText.innerText = "Simulation Finished";
           activeSimulationTimeout = setTimeout(() => {
             stopSimulation();
-          }, 3500); // Stop and clear after 3.5s
+          }, 3500);
           return;
         }
 
         const step = simulationSteps[stepIndex];
         simTextDesc.innerText = step.description;
 
-        // Apply temporary node additions if needed (e.g. Ingestion operations)
         let datasetChanged = false;
         
         if (step.tempNode) {
-          // Check if already exists, else push
           if (!graphNodes.find(n => n.id === step.tempNode.id)) {
             graphNodes.push({ ...step.tempNode });
             datasetChanged = true;
@@ -1348,7 +1493,6 @@
         
         if (step.tempLink) {
           if (!graphLinks.find(l => l.id === step.tempLink.id)) {
-            // D3 link sources/targets should resolve to referenced node objects
             const sourceNode = graphNodes.find(n => n.id === step.tempLink.source);
             const targetNode = graphNodes.find(n => n.id === step.tempLink.target);
             graphLinks.push({
@@ -1364,10 +1508,8 @@
           updateGraph();
         }
 
-        // Apply visual highlights
         clearHighlights();
         
-        // Highlight nodes
         const nodesToHighlight = step.highlightNodes || [];
         const nodesToFade = step.fadeNodes || [];
         
@@ -1383,14 +1525,12 @@
             d3.select(this).select(".node-subtext").classed("faded", true);
           }
           if (isFaded) {
-            // Apply a destructive delete animation
             d3.select(this).transition().duration(500)
               .style("opacity", 0.1)
               .style("filter", "brightness(0.3)");
           }
         });
 
-        // Highlight links
         const linksToHighlight = step.highlightLinks || [];
         const linksToFade = step.fadeLinks || [];
         
@@ -1413,7 +1553,6 @@
           }
         });
 
-        // Highlight link labels
         container.selectAll(".link-label").each(function(d) {
           const isHighlighted = linksToHighlight.includes(d.id);
           const isFaded = linksToFade.includes(d.id);
@@ -1430,7 +1569,7 @@
         stepIndex++;
         updateMarkerThemeColor();
         
-        activeSimulationTimeout = setTimeout(playStep, 2500); // 2.5s step intervals
+        activeSimulationTimeout = setTimeout(playStep, 2500);
       }
 
       playStep();
@@ -1439,7 +1578,7 @@
 
     // Bootstrapping
     window.addEventListener("DOMContentLoaded", () => {
-      initGraph();
+      fetchAndInitGraph();
     });
   </script>
 </body>

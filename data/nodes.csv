@@ -1,0 +1,8 @@
+id,label,name,age,population,industry,founded
+alice,Person,Alice,28,,,
+bob,Person,Bob,35,,,
+charlie,Person,Charlie,32,,,
+ny,City,New York,,8.4M,,
+sf,City,San Francisco,,880K,,
+acme,Company,Acme Corp,,,Tech,2015
+stark,Company,Stark Industries,,,Aerospace,1963

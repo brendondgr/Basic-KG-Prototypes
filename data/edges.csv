@@ -1,0 +1,11 @@
+id,source,target,type,since,strength,role,salary,building
+e1,alice,ny,LIVES_IN,2018,,,,
+e2,bob,sf,LIVES_IN,2021,,,,
+e3,charlie,ny,LIVES_IN,2015,,,,
+e4,alice,stark,WORKS_AT,,,Lead Engineer,$160k,
+e5,bob,acme,WORKS_AT,,,Product Manager,$140k,
+e6,charlie,stark,WORKS_AT,,,Senior Scientist,$150k,
+e7,stark,ny,HQ_IN,,,,,Stark Tower
+e8,acme,sf,HQ_IN,,,,,Acme HQ
+e9,alice,bob,KNOWS,2020,Close,,,
+e10,bob,charlie,KNOWS,2022,Professional,,,
