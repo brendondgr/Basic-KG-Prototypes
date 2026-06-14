@@ -1,24 +1,36 @@
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Knowledge Graph Tutorial | Dev Edition</title>
+  <title>Knowledge Graph Tutorial | Neo4j & Gremlin Playground</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  
   <style>
     :root {
-      /* Professional Dev Palette - OKLCH */
+      /* Base Developer Palette - OKLCH */
       --bg: oklch(18% 0.01 250);
       --surface: oklch(22% 0.01 250);
       --surface-light: oklch(26% 0.01 250);
       --fg: oklch(92% 0.01 250);
       --muted: oklch(65% 0.02 250);
       --border: oklch(30% 0.01 250);
-      --accent: oklch(68% 0.18 260); /* Electric Indigo */
-      --accent-glow: oklch(68% 0.18 260 / 20%);
-
+      
+      /* Theme accents, default to Neo4j (Teal / Electric Blue) */
+      --accent: oklch(70% 0.16 200); 
+      --accent-glow: oklch(70% 0.16 200 / 25%);
+      --accent-solid: #00bcd4;
+      
       --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    }
+
+    /* Gremlin Theme Overrides (Purple / Magenta / Neon green highlights) */
+    body.mode-gremlin {
+      --accent: oklch(68% 0.22 310);
+      --accent-glow: oklch(68% 0.22 310 / 25%);
+      --accent-solid: #ec407a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,6 +44,7 @@
       flex-direction: column;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
+      transition: background-color 0.3s ease;
     }
 
     /* Header: Command Bar Style */
@@ -43,13 +56,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
+      padding: 0 24px;
       flex-shrink: 0;
       z-index: 100;
     }
 
     .header-title {
-      font-weight: 600;
+      font-weight: 650;
       font-size: 16px;
       letter-spacing: -0.02em;
       display: flex;
@@ -59,11 +72,12 @@
 
     .header-title::before {
       content: '';
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       background: var(--accent);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      transition: all 0.3s ease;
     }
 
     .header-actions {
@@ -75,27 +89,27 @@
       gap: 4px;
     }
 
-    button {
+    button.paradigm-btn {
       background: transparent;
       border: 0;
       color: var(--muted);
       font-family: var(--font-display);
       font-size: 13px;
-      font-weight: 500;
-      padding: 6px 14px;
+      font-weight: 600;
+      padding: 6px 16px;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    button:hover {
+    button.paradigm-btn:hover {
       color: var(--fg);
       background: var(--surface);
     }
 
-    button.active {
+    button.paradigm-btn.active {
       background: var(--accent);
-      color: white;
+      color: #fff;
       box-shadow: 0 4px 12px var(--accent-glow);
     }
 
@@ -115,12 +129,12 @@
     }
 
     #left-panel {
-      width: 420px;
-      min-width: 320px;
+      width: 480px;
+      min-width: 380px;
       max-width: 600px;
       background: var(--surface);
       border-right: 1px solid var(--border);
-      padding: 32px 24px;
+      padding: 28px 24px;
       z-index: 2;
     }
 
@@ -135,15 +149,6 @@
         linear-gradient(90deg, var(--border) 1px, transparent 1px);
       background-size: 40px 40px;
     }
-
-    /* Canvas Axis Markers */
-    .canvas-axis {
-      position: absolute;
-      background: var(--border);
-      opacity: 0.5;
-    }
-    .axis-x { top: 0; left: 0; width: 100%; height: 1px; }
-    .axis-y { top: 0; left: 0; width: 1px; height: 100%; }
 
     /* Resizer with Handle */
     .resizer {
@@ -172,9 +177,13 @@
       opacity: 0.5;
     }
 
+    /* Dynamic Visibility classes */
+    body.mode-neo4j .gremlin-only { display: none !important; }
+    body.mode-gremlin .neo4j-only { display: none !important; }
+
     /* Tutorial Typography & Components */
     .tutorial-step {
-      margin-bottom: 40px;
+      margin-bottom: 32px;
       animation: fadeIn 0.4s ease-out forwards;
     }
 
@@ -187,7 +196,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .step-number {
@@ -201,147 +210,764 @@
       display: grid;
       place-items: center;
       font-weight: 700;
+      transition: background-color 0.3s ease;
     }
 
     .tutorial-step h2 {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--fg);
       letter-spacing: -0.01em;
     }
 
     .tutorial-step p {
-      font-size: 14px;
+      font-size: 13.5px;
       line-height: 1.6;
       color: var(--muted);
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .code-container {
       position: relative;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
     }
 
     .code-header {
       display: flex;
-      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
       padding: 8px 12px;
-      background: oklch(30% 0.01 250);
-      border: 1px solid var(--border);
-      border-bottom: 0;
-      border-radius: 6px 6px 0 0;
+      background: oklch(26% 0.01 250);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-header-dots {
+      display: flex;
+      gap: 6px;
     }
 
     .dot { width: 8px; height: 8px; border-radius: 50%; }
     .dot-r { background: #ff5f56; }
     .dot-y { background: #ffbd2e; }
     .dot-g { background: #27c93f; }
+    
+    .code-lang {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 555;
+    }
 
     .code-block {
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 12px;
       background: oklch(20% 0.01 250);
-      border: 1px solid var(--border);
-      padding: 16px;
-      border-radius: 0 0 6px 6px;
+      padding: 14px;
       color: #a9b1d6;
       line-height: 1.5;
       white-space: pre;
       overflow-x: auto;
     }
 
-    .syntax-keyword { color: #c678dd; }
-    .syntax-func { color: #61afef; }
-    .syntax-str { color: #98c379; }
+    /* Inline action buttons */
+    .action-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -6px;
+      margin-bottom: 16px;
+    }
 
-    .canvas-empty-state {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      color: var(--muted);
+    .sim-play-btn {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .sim-play-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .syntax-keyword { color: #f7768e; font-weight: 600; }
+    .syntax-func { color: #7aa2f7; }
+    .syntax-str { color: #9ece6a; }
+    .syntax-comment { color: #565f89; font-style: italic; }
+
+    /* Playground Table CSS */
+    .playground-section {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 10px;
+    }
+
+    .playground-section h3 {
       font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--fg);
+    }
+
+    .playground-section p.desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .playground-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+
+    .playground-table th, .playground-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .playground-table th {
+      color: var(--muted);
+      font-weight: 600;
+      background: oklch(21% 0.01 250);
+      font-size: 11px;
+    }
+
+    .playground-table tbody tr {
+      transition: background 0.15s;
+    }
+
+    .playground-table tbody tr:hover {
+      background: var(--surface-light);
+    }
+
+    .playground-table td.op-name {
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .playground-table td code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .row-play-btn {
+      background: var(--surface-light);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.2s;
+      padding: 0;
+    }
+
+    .playground-table tr:hover .row-play-btn {
+      color: var(--fg);
+      border-color: var(--muted);
+    }
+
+    .row-play-btn:hover {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* Floating Glassmorphic Inspector Card */
+    .inspector-card {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 280px;
+      background: rgba(22, 22, 26, 0.75);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      z-index: 10;
+      transition: all 0.3s ease;
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(10px);
       pointer-events: none;
     }
 
-    .canvas-empty-state svg {
-      width: 64px;
-      height: 64px;
-      opacity: 0.2;
-      margin-bottom: 12px;
+    .inspector-card.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .inspector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .inspector-title {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+    }
+
+    .inspector-label {
+      background: var(--surface-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .inspector-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .inspector-props-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .inspector-prop {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .inspector-prop-key {
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    .inspector-prop-val {
+      font-family: var(--font-mono);
+      color: var(--fg);
+    }
+
+    /* Simulation overlay status in bottom-left of canvas */
+    .sim-status-overlay {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      background: rgba(22, 22, 26, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 320px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 10;
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+    }
+
+    .sim-status-overlay.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .sim-status-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+    }
+
+    .sim-status-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+      70% { box-shadow: 0 0 0 6px rgba(0,0,0,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+    }
+
+    .sim-status-text {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--fg);
+    }
+
+    .sim-status-controls {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .sim-stop-btn {
+      background: rgba(255, 95, 86, 0.15);
+      border: 1px solid rgba(255, 95, 86, 0.4);
+      color: #ff5f56;
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .sim-stop-btn:hover {
+      background: #ff5f56;
+      color: white;
+    }
+
+    /* D3 Styling */
+    .link-line {
+      stroke: var(--border);
+      stroke-width: 1.5px;
+      transition: stroke 0.3s, stroke-width 0.3s;
+      cursor: pointer;
+    }
+
+    .link-line.highlighted {
       stroke: var(--accent);
+      stroke-width: 3.5px;
+      filter: drop-shadow(0 0 4px var(--accent-glow));
+    }
+
+    .link-line.faded {
+      opacity: 0.15;
+    }
+
+    .link-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      fill: var(--muted);
+      text-anchor: middle;
+      pointer-events: none;
+      transition: fill 0.3s, opacity 0.3s;
+      background: var(--bg);
+    }
+
+    .link-label.highlighted {
+      fill: var(--fg);
+      font-weight: 600;
+    }
+
+    .link-label.faded {
+      opacity: 0.1;
+    }
+
+    .node-group {
+      cursor: grab;
+    }
+    .node-group:active {
+      cursor: grabbing;
+    }
+
+    .node-circle {
+      stroke: var(--border);
+      stroke-width: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .node-group:hover .node-circle {
+      stroke: var(--fg);
+      stroke-width: 2.5px;
+    }
+
+    /* Color definitions by type */
+    .node-circle.type-Person {
+      fill: oklch(40% 0.12 260); /* Deep Slate/Blue */
+      stroke: oklch(65% 0.16 260); /* Neon Purple-Blue */
+    }
+    .node-circle.type-City {
+      fill: oklch(35% 0.12 140); /* Deep Green */
+      stroke: oklch(65% 0.15 140); /* Teal-Green */
+    }
+    .node-circle.type-Company {
+      fill: oklch(38% 0.12 40); /* Deep Gold/Orange */
+      stroke: oklch(70% 0.15 40); /* Bright Orange */
+    }
+
+    .node-group.highlighted .node-circle {
+      stroke: var(--accent) !important;
+      stroke-width: 3px;
+      filter: drop-shadow(0 0 8px var(--accent-glow));
+      animation: pulse-node 2.0s infinite alternate;
+    }
+
+    @keyframes pulse-node {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+
+    .node-group.faded {
+      opacity: 0.15;
+    }
+
+    .node-text {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 555;
+      fill: var(--fg);
+      text-anchor: middle;
+      pointer-events: none;
+      transition: fill 0.3s, opacity 0.3s;
+    }
+
+    .node-text.faded {
+      opacity: 0.15;
+    }
+
+    .node-subtext {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      fill: var(--muted);
+      text-anchor: middle;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .node-subtext.faded {
+      opacity: 0.15;
+    }
+
+    /* Arrow heads markers */
+    .arrow-marker {
+      fill: var(--border);
+      transition: fill 0.3s;
+    }
+    .arrow-marker.highlighted {
+      fill: var(--accent);
+    }
+
+    /* Legend */
+    .legend-overlay {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: rgba(22, 22, 26, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+    }
+
+    .legend-color.color-Person {
+      background: oklch(40% 0.12 260);
+      border-color: oklch(65% 0.16 260);
+    }
+    .legend-color.color-City {
+      background: oklch(35% 0.12 140);
+      border-color: oklch(65% 0.15 140);
+    }
+    .legend-color.color-Company {
+      background: oklch(38% 0.12 40);
+      border-color: oklch(70% 0.15 40);
     }
   </style>
 </head>
-<body>
+<body class="mode-neo4j">
 
   <header>
     <div class="header-title">Knowledge Graph Tutorial</div>
     <div class="header-actions">
-      <button class="active">Neo4J</button>
-      <button>Gremlin</button>
+      <button class="paradigm-btn active" id="neo4j-toggle">Neo4j</button>
+      <button class="paradigm-btn" id="gremlin-toggle">Gremlin</button>
     </div>
   </header>
 
   <main>
     <div id="left-panel" class="panel">
-      <div class="tutorial-step">
-        <div class="step-header">
-          <div class="step-number">01</div>
-          <h2>Graph Fundamentals</h2>
-        </div>
-        <p>Unlike tabular data, Knowledge Graphs represent information as <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges). This allows for complex, recursive querying.</p>
-        <p>Every piece of data is stored as a <i>Triple</i>: <br><code>(Subject) &mdash; [Predicate] &mdash; (Object)</code></p>
-      </div>
-
-      <div class="tutorial-step">
-        <div class="step-header">
-          <div class="step-number">02</div>
-          <h2>Ingestion Pipeline</h2>
-        </div>
-        <p>To populate a graph from a relational source, we use a <strong>Schema-First</strong> approach to map vertices and edges.</p>
-        <div class="code-container">
-          <div class="code-header">
-            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      
+      <!-- ================= NEO4J TUTORIAL CONTENT ================= -->
+      <div class="neo4j-only">
+        <div class="tutorial-step">
+          <div class="step-header">
+            <div class="step-number">01</div>
+            <h2>Graph Fundamentals (Nodes & Relationships)</h2>
           </div>
-          <div class="code-block"><span>LOAD</strong> csv.file("data.csv") 
-<span>AS</span> line
-<span>MERGE</span> (p:Person {id: line.id})
-<span>CREATE</span> (p)-[:LIVES_IN]->(:City {name: line.city});</div>
+          <p>Neo4j is a <strong>native graph database</strong> that represents data using the <strong>Property Graph Model</strong>. The data structures are composed of:</p>
+          <p>
+            • <strong>Nodes</strong>: Entities (e.g. <i>Person</i>, <i>City</i>) containing key-value property structures.<br>
+            • <strong>Relationships</strong>: Directed, named connections connecting nodes directly.
+          </p>
+          <p>Every relationship has a direction, a single type label (e.g. <code>LIVES_IN</code>), and can hold properties just like nodes.</p>
         </div>
-      </div>
 
-      <div class="tutorial-step">
-        <div class="step-header">
-          <div class="step-number">03</div>
-          <h2>Querying with Cypher</h2>
-        </div>
-        <p>The power of KGs lies in <strong>Pattern Matching</strong>. Find all people who live in a city where a specific company is headquartered:</p>
-        <div class="code-container">
-          <div class="code-header">
-            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <div class="tutorial-step">
+          <div class="step-header">
+            <div class="step-number">02</div>
+            <h2>Declarative Query Ingestion</h2>
           </div>
-          <div class="code-block"><span class="syntax-keyword">MATCH</span> (p:Person)-[:LIVES_IN]->(c:City)
+          <p>To insert nodes and create relationships in Neo4j, we use **Cypher**, a declarative language. Below, we write a MERGE query to match or create relationships:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-header-dots">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+              </div>
+              <div class="code-lang">Cypher</div>
+            </div>
+            <div class="code-block"><span class="syntax-keyword">LOAD CSV</span> FROM <span class="syntax-str">"data.csv"</span> AS line
+<span class="syntax-keyword">MERGE</span> (p:Person {id: line.id})
+<span class="syntax-keyword">CREATE</span> (p)-[:LIVES_IN]->(:City {name: line.city});</div>
+          </div>
+        </div>
+
+        <div class="tutorial-step">
+          <div class="step-header">
+            <div class="step-number">03</div>
+            <h2>Pattern Matching Query</h2>
+          </div>
+          <p>Cypher uses visual ASCII art patterns to represent relationships. This query matches residents in a city where a company is headquartered:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-header-dots">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+              </div>
+              <div class="code-lang">Cypher</div>
+            </div>
+            <div class="code-block"><span class="syntax-keyword">MATCH</span> (p:Person)-[:LIVES_IN]->(c:City)
 <span class="syntax-keyword">MATCH</span> (com:Company)-[:HQ_IN]->(c)
 <span class="syntax-keyword">RETURN</span> p.name, com.name;</div>
+          </div>
+          <div class="action-row">
+            <button class="sim-play-btn" onclick="runSimulation('cypher_match')">
+              <span>▶</span> Run Match Simulation
+            </button>
+          </div>
         </div>
       </div>
+
+      <!-- ================= GREMLIN TUTORIAL CONTENT ================= -->
+      <div class="gremlin-only">
+        <div class="tutorial-step">
+          <div class="step-header">
+            <div class="step-number">01</div>
+            <h2>Graph Fundamentals (Vertices & Edges)</h2>
+          </div>
+          <p>Gremlin is an **imperative and declarative graph traversal language** developed by Apache TinkerPop. It traverses property graphs consisting of:</p>
+          <p>
+            • <strong>Vertices</strong>: Equivalent to nodes, represent objects/entities.<br>
+            • <strong>Edges</strong>: Equivalent to relationships, represent directed connections.
+          </p>
+          <p>While the models are identical conceptually, Gremlin code explicitly references steps over vertices (<code>V()</code>) and edges (<code>E()</code>).</p>
+        </div>
+
+        <div class="tutorial-step">
+          <div class="step-header">
+            <div class="step-number">02</div>
+            <h2>Imperative Traversal Ingestion</h2>
+          </div>
+          <p>In Gremlin, mutations are expressed step-by-step as traversals that add vertices and connect them with edges:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-header-dots">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+              </div>
+              <div class="code-lang">Gremlin</div>
+            </div>
+            <div class="code-block">g.addV(<span class="syntax-str">"Person"</span>).property(<span class="syntax-str">"name"</span>, <span class="syntax-str">"Alice"</span>).as(<span class="syntax-str">"a"</span>)
+ .addV(<span class="syntax-str">"City"</span>).property(<span class="syntax-str">"name"</span>, <span class="syntax-str">"New York"</span>).as(<span class="syntax-str">"c"</span>)
+ .addE(<span class="syntax-str">"LIVES_IN"</span>).from(<span class="syntax-str">"a"</span>).to(<span class="syntax-str">"c"</span>).iterate()</div>
+          </div>
+        </div>
+
+        <div class="tutorial-step">
+          <div class="step-header">
+            <div class="step-number">03</div>
+            <h2>Step-by-step Traversal Query</h2>
+          </div>
+          <p>Gremlin queries are pipelines of map/filter operations. This traversal starts at all Person vertices and steps outward along LIVES_IN edges:</p>
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-header-dots">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+              </div>
+              <div class="code-lang">Gremlin</div>
+            </div>
+            <div class="code-block">g.V().hasLabel(<span class="syntax-str">"Person"</span>)
+   .out(<span class="syntax-str">"LIVES_IN"</span>)
+   .values(<span class="syntax-str">"name"</span>)</div>
+          </div>
+          <div class="action-row">
+            <button class="sim-play-btn" onclick="runSimulation('gremlin_simple_traverse')">
+              <span>▶</span> Run Traversal Simulation
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SYNTAX PLAYGROUND ================= -->
+      <div class="playground-section">
+        <h3>Syntax Playground</h3>
+        <p class="desc">Execute standard CRUD and multi-hop queries. Click the play button to simulate execution on the graph.</p>
+        
+        <table class="playground-table">
+          <thead>
+            <tr>
+              <th>Operation</th>
+              <th class="neo4j-only">Cypher Query</th>
+              <th class="gremlin-only">Gremlin Traversal</th>
+              <th style="width:40px; text-align:center;">Play</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="play-row-insert-node">
+              <td class="op-name">Insert Node/Vertex</td>
+              <td class="neo4j-only"><code><span class="syntax-keyword">CREATE</span> (:Person {name: "Dave"})</code></td>
+              <td class="gremlin-only"><code>g.addV(<span class="syntax-str">"Person"</span>).prop("name","Dave")</code></td>
+              <td><button class="row-play-btn" onclick="runSimulation('op_insert_node')">▶</button></td>
+            </tr>
+            <tr id="play-row-insert-edge">
+              <td class="op-name">Insert Relationship/Edge</td>
+              <td class="neo4j-only"><code>(alice)-[:KNOWS]->(charlie)</code></td>
+              <td class="gremlin-only"><code>g.addE(<span class="syntax-str">"KNOWS"</span>).from(a).to(c)</code></td>
+              <td><button class="row-play-btn" onclick="runSimulation('op_insert_edge')">▶</button></td>
+            </tr>
+            <tr id="play-row-fetch">
+              <td class="op-name">Fetch Node/Vertex</td>
+              <td class="neo4j-only"><code><span class="syntax-keyword">MATCH</span> (n) <span class="syntax-keyword">WHERE</span> n.name = <span class="syntax-str">"Alice"</span></code></td>
+              <td class="gremlin-only"><code>g.V().has(<span class="syntax-str">"name"</span>, <span class="syntax-str">"Alice"</span>)</code></td>
+              <td><button class="row-play-btn" onclick="runSimulation('op_fetch_node')">▶</button></td>
+            </tr>
+            <tr id="play-row-delete">
+              <td class="op-name">Delete Node/Vertex</td>
+              <td class="neo4j-only"><code><span class="syntax-keyword">MATCH</span> (c) <span class="syntax-keyword">DETACH DELETE</span> c</code></td>
+              <td class="gremlin-only"><code>g.V().has(<span class="syntax-str">"name"</span>, <span class="syntax-str">"Charlie"</span>).drop()</code></td>
+              <td><button class="row-play-btn" onclick="runSimulation('op_delete_node')">▶</button></td>
+            </tr>
+            <tr id="play-row-traverse-n">
+              <td class="op-name">Traverse N Hops</td>
+              <td class="neo4j-only"><code>(bob)-[:KNOWS]->()-[:WORKS_AT]->(co)</code></td>
+              <td class="gremlin-only"><code>g.V(bob).out(<span class="syntax-str">"KNOWS"</span>).out(<span class="syntax-str">"WORKS_AT"</span>)</code></td>
+              <td><button class="row-play-btn" onclick="runSimulation('op_traverse_hops')">▶</button></td>
+            </tr>
+            <tr id="play-row-reverse">
+              <td class="op-name">Reverse Traverse</td>
+              <td class="neo4j-only"><code>(ny)<-[:LIVES_IN]-(p)</code></td>
+              <td class="gremlin-only"><code>g.V(ny).in(<span class="syntax-str">"LIVES_IN"</span>)</code></td>
+              <td><button class="row-play-btn" onclick="runSimulation('op_reverse_traverse')">▶</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </div>
 
     <div class="resizer" id="resizer"></div>
 
-    <div id="right-panel" class="panel">
-      <div class="canvas-axis axis-x"></div>
-      <div class="canvas-axis axis-y"></div>
-      <div class="canvas-empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"/></svg>
-        <div>Graph Workspace initialized. Ready for render.</div>
+    <div id="right-panel">
+      <!-- SVG Canvas loaded here -->
+      <svg id="canvas-svg" style="width: 100%; height: 100%; display: block;"></svg>
+
+      <!-- Legend Overlay -->
+      <div class="legend-overlay">
+        <div class="legend-item">
+          <div class="legend-color color-Person"></div>
+          <div>Person</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color color-City"></div>
+          <div>City</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color color-Company"></div>
+          <div>Company</div>
+        </div>
+      </div>
+
+      <!-- Glassmorphic Inspector Card -->
+      <div class="inspector-card" id="inspector-card">
+        <div class="inspector-header">
+          <div class="inspector-title" id="inspector-title-type">Node</div>
+          <div class="inspector-label" id="inspector-label-tag">:Person</div>
+        </div>
+        <div class="inspector-name" id="inspector-name">Alice</div>
+        <div class="inspector-props-list" id="inspector-props">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Simulation Status Overlay -->
+      <div class="sim-status-overlay" id="sim-status-overlay">
+        <div class="sim-status-title">
+          <div class="sim-status-pulse"></div>
+          <span id="sim-status-title-text">Simulation Running</span>
+        </div>
+        <div class="sim-status-text" id="sim-status-text">
+          Traversing out from Alice along LIVES_IN edges.
+        </div>
+        <div class="sim-status-controls">
+          <button class="sim-stop-btn" onclick="stopSimulation()">Stop Simulation</button>
+        </div>
       </div>
     </div>
   </main>
 
+  <!-- Load D3.js -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Load Mock Graph Data -->
+  <script src="graph-data.js"></script>
+
   <script>
+    // State Management
+    let currentMode = 'neo4j'; // 'neo4j' or 'gremlin'
+    let activeSimulationTimeout = null;
+    let originalData = window.KNOWLEDGE_GRAPH_DATA;
+    let graphNodes = [];
+    let graphLinks = [];
+    
+    // Resizer logic
     const resizer = document.getElementById('resizer');
     const leftPanel = document.getElementById('left-panel');
     let isDragging = false;
@@ -350,22 +976,471 @@
       isDragging = true;
       resizer.classList.add('dragging');
       document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none'; // Prevent selection while dragging
     });
 
     window.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
       const newWidth = e.clientX;
-      if (newWidth >= 320 && newWidth <= 600) {
+      if (newWidth >= 380 && newWidth <= 600) {
         leftPanel.style.width = `${newWidth}px`;
+        // Resize SVG viewport
+        updateSvgDimensions();
       }
     });
 
     window.addEventListener('mouseup', () => {
-      isDragging = false;
-      resizer.classList.remove('dragging');
-      document.body.style.cursor = 'default';
+      if (isDragging) {
+        isDragging = false;
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+      }
+    });
+
+    // Toggle logic for Neo4j vs Gremlin modes
+    const neo4jToggleBtn = document.getElementById('neo4j-toggle');
+    const gremlinToggleBtn = document.getElementById('gremlin-toggle');
+
+    function setMode(mode) {
+      if (currentMode === mode) return;
+      stopSimulation();
+      currentMode = mode;
+      
+      if (mode === 'neo4j') {
+        document.body.classList.remove('mode-gremlin');
+        document.body.classList.add('mode-neo4j');
+        neo4jToggleBtn.classList.add('active');
+        gremlinToggleBtn.classList.remove('active');
+      } else {
+        document.body.classList.remove('mode-neo4j');
+        document.body.classList.add('mode-gremlin');
+        gremlinToggleBtn.classList.add('active');
+        neo4jToggleBtn.classList.remove('active');
+      }
+      
+      // Update D3 theme marker colors
+      updateMarkerThemeColor();
+      // Reset Inspector Panel labels
+      hideInspector();
+    }
+
+    neo4jToggleBtn.addEventListener('click', () => setMode('neo4j'));
+    gremlinToggleBtn.addEventListener('click', () => setMode('gremlin'));
+
+
+    // D3 Visualization Engine
+    const svg = d3.select("#canvas-svg");
+    const container = svg.append("g").attr("class", "zoom-container");
+    
+    // Zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 3])
+      .on("zoom", (event) => {
+        container.attr("transform", event.transform);
+      });
+    
+    svg.call(zoom);
+
+    // Grid pattern definitions and arrows
+    const defs = svg.append("defs");
+    
+    // Add Marker for directed edges
+    defs.append("marker")
+      .attr("id", "arrow-default")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 0) // We calculate dynamic link offsets instead, keep marker at tip
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-4L9,0L0,4")
+      .attr("class", "arrow-marker");
+
+    defs.append("marker")
+      .attr("id", "arrow-highlighted")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 0)
+      .attr("refY", 0)
+      .attr("markerWidth", 7)
+      .attr("markerHeight", 7)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-4L9,0L0,4")
+      .attr("class", "arrow-marker highlighted");
+
+    // D3 force simulation setup
+    let width = document.getElementById('right-panel').clientWidth;
+    let height = document.getElementById('right-panel').clientHeight;
+    
+    const simulation = d3.forceSimulation()
+      .force("link", d3.forceLink().id(d => d.id).distance(140))
+      .force("charge", d3.forceManyBody().strength(-350))
+      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("collide", d3.forceCollide().radius(45));
+
+    function updateSvgDimensions() {
+      width = document.getElementById('right-panel').clientWidth;
+      height = document.getElementById('right-panel').clientHeight;
+      simulation.force("center", d3.forceCenter(width / 2, height / 2));
+      simulation.alpha(0.3).restart();
+    }
+    
+    window.addEventListener("resize", updateSvgDimensions);
+
+    // Initial Render of the Graph
+    function initGraph() {
+      // Clear container
+      container.html("");
+      
+      // Clone nodes and links
+      graphNodes = originalData.nodes.map(d => ({ ...d }));
+      graphLinks = originalData.links.map(d => ({ ...d }));
+      
+      updateGraph();
+      
+      // Initial zoom fit
+      svg.transition().duration(500).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(20, 20).scale(0.9)
+      );
+    }
+
+    let linkElements, nodeElements, textElements, subtextElements, linkLabels;
+
+    function updateGraph() {
+      // Render links
+      linkElements = container.selectAll(".link-line")
+        .data(graphLinks, d => d.id)
+        .join("path")
+        .attr("class", "link-line")
+        .attr("id", d => `link-${d.id}`)
+        .attr("marker-end", "url(#arrow-default)")
+        .on("mouseover", (event, d) => showLinkInspector(d))
+        .on("mouseout", hideInspector);
+
+      // Render link labels (placed at midpoints)
+      linkLabels = container.selectAll(".link-label")
+        .data(graphLinks, d => d.id)
+        .join("text")
+        .attr("class", "link-label")
+        .attr("id", d => `link-label-${d.id}`)
+        .text(d => d.type);
+
+      // Render nodes as group (circle + text)
+      nodeElements = container.selectAll(".node-group")
+        .data(graphNodes, d => d.id)
+        .join(
+          enter => {
+            const group = enter.append("g")
+              .attr("class", "node-group")
+              .attr("id", d => `node-${d.id}`)
+              .call(drag(simulation));
+            
+            group.append("circle")
+              .attr("class", d => `node-circle type-${d.label}`)
+              .attr("r", 20);
+            
+            group.append("text")
+              .attr("class", "node-text")
+              .attr("y", 4)
+              .text(d => d.name);
+              
+            group.append("text")
+              .attr("class", "node-subtext")
+              .attr("y", 32)
+              .text(d => `:${d.label}`);
+            
+            return group;
+          },
+          update => update,
+          exit => exit.remove()
+        )
+        .on("mouseover", (event, d) => showNodeInspector(d))
+        .on("mouseout", hideInspector);
+
+      // Bind simulation data
+      simulation.nodes(graphNodes);
+      simulation.force("link").links(graphLinks);
+      simulation.alpha(0.8).restart();
+
+      // Tick listener
+      simulation.on("tick", () => {
+        // Update nodes translation
+        container.selectAll(".node-group")
+          .attr("transform", d => `translate(${d.x},${d.y})`);
+
+        // Compute direct link source-target paths, cutting off lines at node radius (20px) to show arrowheads properly
+        linkElements.attr("d", d => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dr === 0) return "";
+          
+          // Cut line short by target node radius (20px) + arrow padding (6px)
+          const targetOffset = 26;
+          const sourceOffset = 20;
+          
+          const targetX = d.target.x - (dx / dr) * targetOffset;
+          const targetY = d.target.y - (dy / dr) * targetOffset;
+          const sourceX = d.source.x + (dx / dr) * sourceOffset;
+          const sourceY = d.source.y + (dy / dr) * sourceOffset;
+          
+          return `M${sourceX},${sourceY}L${targetX},${targetY}`;
+        });
+
+        // Update link label position to center of path
+        linkLabels
+          .attr("x", d => (d.source.x + d.target.x) / 2)
+          .attr("y", d => (d.source.y + d.target.y) / 2 - 4);
+      });
+    }
+
+    // Drag behavior for D3 force layout
+    function drag(sim) {
+      function dragstarted(event) {
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
+      }
+      
+      function dragged(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+      }
+      
+      function dragended(event) {
+        if (!event.active) sim.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+      }
+      
+      return d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
+    }
+
+    // Dynamic marker colors based on current mode
+    function updateMarkerThemeColor() {
+      const arrowMarkers = document.querySelectorAll(".arrow-marker.highlighted");
+      arrowMarkers.forEach(el => {
+        el.style.fill = currentMode === 'neo4j' ? '#00bcd4' : '#ec407a';
+      });
+    }
+
+
+    // Inspector Card UI Interactions
+    const inspectorCard = document.getElementById("inspector-card");
+    const inspectorTitle = document.getElementById("inspector-title-type");
+    const inspectorLabel = document.getElementById("inspector-label-tag");
+    const inspectorName = document.getElementById("inspector-name");
+    const inspectorProps = document.getElementById("inspector-props");
+
+    function showNodeInspector(node) {
+      inspectorTitle.innerText = currentMode === 'neo4j' ? 'Node' : 'Vertex';
+      inspectorLabel.innerText = currentMode === 'neo4j' ? `:${node.label}` : node.label;
+      inspectorName.innerText = node.name;
+      
+      inspectorProps.innerHTML = "";
+      Object.entries(node.properties || {}).forEach(([k, v]) => {
+        inspectorProps.innerHTML += `
+          <div class="inspector-prop">
+            <span class="inspector-prop-key">${k}:</span>
+            <span class="inspector-prop-val">${v}</span>
+          </div>
+        `;
+      });
+      
+      inspectorCard.classList.add("active");
+    }
+
+    function showLinkInspector(link) {
+      inspectorTitle.innerText = currentMode === 'neo4j' ? 'Relationship' : 'Edge';
+      inspectorLabel.innerText = link.type;
+      
+      // Determine link name representation
+      const sourceName = typeof link.source === 'object' ? link.source.name : link.source;
+      const targetName = typeof link.target === 'object' ? link.target.name : link.target;
+      inspectorName.innerText = `${sourceName} ➔ ${targetName}`;
+      
+      inspectorProps.innerHTML = "";
+      Object.entries(link.properties || {}).forEach(([k, v]) => {
+        inspectorProps.innerHTML += `
+          <div class="inspector-prop">
+            <span class="inspector-prop-key">${k}:</span>
+            <span class="inspector-prop-val">${v}</span>
+          </div>
+        `;
+      });
+      
+      inspectorCard.classList.add("active");
+    }
+
+    function hideInspector() {
+      inspectorCard.classList.remove("active");
+    }
+
+
+    // Simulation / Animation Pipeline
+    const simOverlay = document.getElementById("sim-status-overlay");
+    const simTitleText = document.getElementById("sim-status-title-text");
+    const simTextDesc = document.getElementById("sim-status-text");
+
+    function stopSimulation() {
+      if (activeSimulationTimeout) {
+        clearTimeout(activeSimulationTimeout);
+        activeSimulationTimeout = null;
+      }
+      simOverlay.classList.remove("active");
+      
+      // Restore dataset to original
+      graphNodes = originalData.nodes.map(d => ({ ...d }));
+      graphLinks = originalData.links.map(d => ({ ...d }));
+      
+      updateGraph();
+      clearHighlights();
+    }
+
+    function clearHighlights() {
+      container.selectAll(".node-group").classed("highlighted", false).classed("faded", false);
+      container.selectAll(".link-line").classed("highlighted", false).classed("faded", false).attr("marker-end", "url(#arrow-default)");
+      container.selectAll(".link-label").classed("highlighted", false).classed("faded", false);
+      container.selectAll(".node-text").classed("faded", false);
+      container.selectAll(".node-subtext").classed("faded", false);
+    }
+
+    function runSimulation(simId) {
+      stopSimulation(); // Reset any currently running sim
+      
+      const simulationSteps = window.GRAPH_SIMULATIONS[simId];
+      if (!simulationSteps) return;
+
+      simOverlay.classList.add("active");
+      simTitleText.innerText = "Simulation Playing...";
+      
+      let stepIndex = 0;
+
+      function playStep() {
+        if (stepIndex >= simulationSteps.length) {
+          simTitleText.innerText = "Simulation Finished";
+          activeSimulationTimeout = setTimeout(() => {
+            stopSimulation();
+          }, 3500); // Stop and clear after 3.5s
+          return;
+        }
+
+        const step = simulationSteps[stepIndex];
+        simTextDesc.innerText = step.description;
+
+        // Apply temporary node additions if needed (e.g. Ingestion operations)
+        let datasetChanged = false;
+        
+        if (step.tempNode) {
+          // Check if already exists, else push
+          if (!graphNodes.find(n => n.id === step.tempNode.id)) {
+            graphNodes.push({ ...step.tempNode });
+            datasetChanged = true;
+          }
+        }
+        
+        if (step.tempLink) {
+          if (!graphLinks.find(l => l.id === step.tempLink.id)) {
+            // D3 link sources/targets should resolve to referenced node objects
+            const sourceNode = graphNodes.find(n => n.id === step.tempLink.source);
+            const targetNode = graphNodes.find(n => n.id === step.tempLink.target);
+            graphLinks.push({
+              ...step.tempLink,
+              source: sourceNode,
+              target: targetNode
+            });
+            datasetChanged = true;
+          }
+        }
+
+        if (datasetChanged) {
+          updateGraph();
+        }
+
+        // Apply visual highlights
+        clearHighlights();
+        
+        // Highlight nodes
+        const nodesToHighlight = step.highlightNodes || [];
+        const nodesToFade = step.fadeNodes || [];
+        
+        container.selectAll(".node-group").each(function(d) {
+          const isHighlighted = nodesToHighlight.includes(d.id);
+          const isFaded = nodesToFade.includes(d.id);
+          
+          d3.select(this).classed("highlighted", isHighlighted);
+          
+          if (nodesToHighlight.length > 0 && !isHighlighted) {
+            d3.select(this).classed("faded", true);
+            d3.select(this).select(".node-text").classed("faded", true);
+            d3.select(this).select(".node-subtext").classed("faded", true);
+          }
+          if (isFaded) {
+            // Apply a destructive delete animation
+            d3.select(this).transition().duration(500)
+              .style("opacity", 0.1)
+              .style("filter", "brightness(0.3)");
+          }
+        });
+
+        // Highlight links
+        const linksToHighlight = step.highlightLinks || [];
+        const linksToFade = step.fadeLinks || [];
+        
+        container.selectAll(".link-line").each(function(d) {
+          const isHighlighted = linksToHighlight.includes(d.id);
+          const isFaded = linksToFade.includes(d.id);
+          
+          d3.select(this).classed("highlighted", isHighlighted);
+          if (isHighlighted) {
+            d3.select(this).attr("marker-end", "url(#arrow-highlighted)");
+          } else {
+            d3.select(this).attr("marker-end", "url(#arrow-default)");
+          }
+          
+          if (linksToHighlight.length > 0 && !isHighlighted) {
+            d3.select(this).classed("faded", true);
+          }
+          if (isFaded) {
+            d3.select(this).transition().duration(500).style("opacity", 0.05);
+          }
+        });
+
+        // Highlight link labels
+        container.selectAll(".link-label").each(function(d) {
+          const isHighlighted = linksToHighlight.includes(d.id);
+          const isFaded = linksToFade.includes(d.id);
+          
+          d3.select(this).classed("highlighted", isHighlighted);
+          if (linksToHighlight.length > 0 && !isHighlighted) {
+            d3.select(this).classed("faded", true);
+          }
+          if (isFaded) {
+            d3.select(this).transition().duration(500).style("opacity", 0.05);
+          }
+        });
+
+        stepIndex++;
+        updateMarkerThemeColor();
+        
+        activeSimulationTimeout = setTimeout(playStep, 2500); // 2.5s step intervals
+      }
+
+      playStep();
+    }
+
+
+    // Bootstrapping
+    window.addEventListener("DOMContentLoaded", () => {
+      initGraph();
     });
   </script>
 </body>
 </html>
-</main>
