@@ -1428,8 +1428,25 @@
       }
       simOverlay.classList.remove("active");
       
-      // Restore dataset to original
-      graphNodes = originalData.nodes.map(d => ({ ...d }));
+      // Save current node positions to prevent layout explosion when mapping new datasets
+      const posMap = {};
+      graphNodes.forEach(n => {
+        if (n.x !== undefined) {
+          posMap[n.id] = { x: n.x, y: n.y, vx: n.vx, vy: n.vy };
+        }
+      });
+      
+      // Restore dataset to original, keeping existing node positions
+      graphNodes = originalData.nodes.map(d => {
+        const copy = { ...d };
+        if (posMap[d.id]) {
+          copy.x = posMap[d.id].x;
+          copy.y = posMap[d.id].y;
+          copy.vx = posMap[d.id].vx;
+          copy.vy = posMap[d.id].vy;
+        }
+        return copy;
+      });
       graphLinks = originalData.links.map(d => ({ ...d }));
       
       updateGraph();
@@ -1474,6 +1491,11 @@
       .then(data => {
         // Output logs returned by Flask
         logToConsole(data.logs);
+        
+        // Update originalData if mutated graph is returned
+        if (data.graph) {
+          originalData = data.graph;
+        }
         
         // Execute animation steps
         playVisualSteps(data.steps);

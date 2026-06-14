@@ -65,7 +65,8 @@ def simulate_query():
         
     return jsonify({
         "steps": result["steps"],
-        "logs": result["logs"]
+        "logs": result["logs"],
+        "graph": GRAPH_STATE
     })
 
 @app.route('/api/ingestion-code/<paradigm>', methods=['GET'])

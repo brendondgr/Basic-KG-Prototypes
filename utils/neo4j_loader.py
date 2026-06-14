@@ -82,6 +82,8 @@ print("Neo4j Ingestion completed successfully!")
         
         if "CREATE (:PERSON" in query_normalized or 'CREATE (D:PERSON' in query_normalized:
             temp_node = { "id": "dave", "label": "Person", "name": "Dave", "properties": { "age": 29 } }
+            if not any(n['id'] == 'dave' for n in graph_data['nodes']):
+                graph_data['nodes'].append(temp_node)
             highlight_nodes = ["dave"]
             log_lines.append("Parsed Query: CREATE (:Person {name: 'Dave', age: 29})")
             log_lines.append("Result: Added 1 node, set 2 properties. (id: dave)")
@@ -95,6 +97,8 @@ print("Neo4j Ingestion completed successfully!")
             ]
         elif "CREATE (A)-[:KNOWS" in query_normalized or "ALICE" in query_normalized and "CHARLIE" in query_normalized and "KNOWS" in query_normalized and "CREATE" in query_normalized:
             temp_link = { "id": "e_temp", "source": "alice", "target": "charlie", "type": "KNOWS", "properties": { "since": 2023 } }
+            if not any(l['id'] == 'e_temp' for l in graph_data['links']):
+                graph_data['links'].append(temp_link)
             highlight_nodes = ["alice", "charlie"]
             highlight_links = ["e_temp"]
             log_lines.append("Parsed Query: MATCH (a), (c) CREATE (a)-[:KNOWS {since: 2023}]->(c)")
@@ -119,6 +123,8 @@ print("Neo4j Ingestion completed successfully!")
                 }
             ]
         elif "DETACH DELETE" in query_normalized:
+            graph_data['nodes'] = [n for n in graph_data['nodes'] if n['id'] != 'charlie']
+            graph_data['links'] = [l for l in graph_data['links'] if l['source'] != 'charlie' and l['target'] != 'charlie']
             fade_nodes = ["charlie"]
             fade_links = ["e3", "e6", "e10"]
             log_lines.append("Parsed Query: MATCH (c:Person {name: 'Charlie'}) DETACH DELETE c")

@@ -97,6 +97,8 @@ print("Gremlin Ingestion completed successfully!")
         
         if "addV(" in query_normalized:
             temp_node = { "id": "dave", "label": "Person", "name": "Dave", "properties": { "age": 29 } }
+            if not any(n['id'] == 'dave' for n in graph_data['nodes']):
+                graph_data['nodes'].append(temp_node)
             highlight_nodes = ["dave"]
             log_lines.append("g.addV('Person').property('name', 'Dave').property('age', 29)")
             log_lines.append("==> v[dave]")
@@ -110,6 +112,8 @@ print("Gremlin Ingestion completed successfully!")
             ]
         elif "addE(" in query_normalized:
             temp_link = { "id": "e_temp", "source": "alice", "target": "charlie", "type": "KNOWS", "properties": { "since": 2023 } }
+            if not any(l['id'] == 'e_temp' for l in graph_data['links']):
+                graph_data['links'].append(temp_link)
             highlight_nodes = ["alice", "charlie"]
             highlight_links = ["e_temp"]
             log_lines.append("g.V().has('name','Alice').as('a').V().has('name','Charlie').as('c').addE('KNOWS').from('a').to('c')")
@@ -134,6 +138,8 @@ print("Gremlin Ingestion completed successfully!")
                 }
             ]
         elif "drop()" in query_normalized:
+            graph_data['nodes'] = [n for n in graph_data['nodes'] if n['id'] != 'charlie']
+            graph_data['links'] = [l for l in graph_data['links'] if l['source'] != 'charlie' and l['target'] != 'charlie']
             fade_nodes = ["charlie"]
             fade_links = ["e3", "e6", "e10"]
             log_lines.append("g.V().has('name', 'Charlie').drop()")
