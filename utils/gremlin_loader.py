@@ -6,7 +6,7 @@ except ImportError:
     DriverRemoteConnection = None
 
 class GremlinLoader:
-    def __init__(self, endpoint="ws://localhost:8182/gremlin"):
+    def __init__(self, endpoint="ws://localhost:8545/gremlin"):
         self.endpoint = endpoint
         self.connection = None
         if DriverRemoteConnection:
@@ -24,7 +24,7 @@ import csv
 
 # Connect to Gremlin Server
 graph = Graph()
-connection = DriverRemoteConnection('ws://localhost:8182/gremlin', 'g')
+connection = DriverRemoteConnection('ws://localhost:8545/gremlin', 'g')
 g = graph.traversal().withRemote(connection)
 
 # Clean existing graph (Optional)

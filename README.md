@@ -8,7 +8,7 @@ The application runs on a real Python/Flask backend, parsing standard CSV datafi
 
 ## Architecture Overview
 
-- **`web.py`**: The entrypoint Flask server. It serves the static front-end resources and exposes JSON endpoints for loading graphs, simulating traversals, and querying driver scripts.
+- **`run.py`**: The entrypoint Flask server. It serves the static front-end resources and exposes JSON endpoints for loading graphs, simulating traversals, and querying driver scripts.
 - **`data/`**: Represents the database table layer. Contains [nodes.csv](data/nodes.csv) (entity metadata) and [edges.csv](data/edges.csv) (directed links).
 - **`utils/`**:
   - `data_loader.py`: Handles CSV parsing, schema configuration, and dynamic graph mapping in Python.
@@ -44,13 +44,13 @@ pip install -e .
 ### 2. Run the Application
 Start the Flask development server:
 ```bash
-python web.py
+python run.py
 ```
-*(On Windows systems, you can also use `py web.py`)*
+*(On Windows systems, you can also use `py run.py`)*
 
 ### 3. Open in Browser
 Visit the application at:
-[**http://127.0.0.1:5000**](http://127.0.0.1:5000)
+[**http://127.0.0.1:8543**](http://127.0.0.1:8543)
 
 ---
 

@@ -14,6 +14,10 @@ gremlin_helper = GremlinLoader()
 # In-memory graph state loaded from CSVs
 GRAPH_STATE = data_loader.load_graph()
 
+# Note: Graph visualization physics & dynamic transitions are handled on the frontend
+# in `web/kg-tutorial-prototype-2.html`. We fixed the "extreme reaction" to new nodes
+# by initializing node positions close to their neighbors and reducing D3 restart alpha.
+
 @app.route('/')
 def index():
     """Serves the main Knowledge Graph tutorial HTML page."""
@@ -82,7 +86,7 @@ def get_ingestion_code(paradigm):
 
 if __name__ == '__main__':
     print("--------------------------------------------------")
-    print(" Knowledge Graph Flask server running on http://127.0.0.1:5000")
+    print(" Knowledge Graph Flask server running on http://127.0.0.1:8543")
     print(" Serves: web/kg-tutorial-prototype-2.html")
     print("--------------------------------------------------")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=8543, debug=True)

@@ -1181,24 +1181,40 @@
 
     let linkElements, nodeElements, linkLabels;
 
-    function updateGraph() {
+    function updateGraph(alpha = 0.8) {
       // Render links
       linkElements = container.selectAll(".link-line")
         .data(graphLinks, d => d.id)
-        .join("path")
-        .attr("class", "link-line")
-        .attr("id", d => `link-${d.id}`)
-        .attr("marker-end", "url(#arrow-default)")
+        .join(
+          enter => enter.append("path")
+            .attr("class", "link-line")
+            .attr("id", d => `link-${d.id}`)
+            .attr("marker-end", "url(#arrow-default)")
+            .style("opacity", 0)
+            .call(enter => enter.transition().duration(600).style("opacity", 1).on("end", function() {
+              d3.select(this).style("opacity", null);
+            })),
+          update => update,
+          exit => exit.remove()
+        )
         .on("mouseover", (event, d) => showLinkInspector(d))
         .on("mouseout", hideInspector);
 
       // Render link labels
       linkLabels = container.selectAll(".link-label")
         .data(graphLinks, d => d.id)
-        .join("text")
-        .attr("class", "link-label")
-        .attr("id", d => `link-label-${d.id}`)
-        .text(d => d.type);
+        .join(
+          enter => enter.append("text")
+            .attr("class", "link-label")
+            .attr("id", d => `link-label-${d.id}`)
+            .text(d => d.type)
+            .style("opacity", 0)
+            .call(enter => enter.transition().duration(600).style("opacity", 1).on("end", function() {
+              d3.select(this).style("opacity", null);
+            })),
+          update => update,
+          exit => exit.remove()
+        );
 
       // Render nodes
       nodeElements = container.selectAll(".node-group")
@@ -1208,6 +1224,7 @@
             const group = enter.append("g")
               .attr("class", "node-group")
               .attr("id", d => `node-${d.id}`)
+              .style("opacity", 0)
               .call(drag(simulation));
             
             group.append("circle")
@@ -1224,6 +1241,10 @@
               .attr("y", 32)
               .text(d => `:${d.label}`);
             
+            group.transition().duration(600).style("opacity", 1).on("end", function() {
+              d3.select(this).style("opacity", null);
+            });
+            
             return group;
           },
           update => update,
@@ -1234,7 +1255,7 @@
 
       simulation.nodes(graphNodes);
       simulation.force("link").links(graphLinks);
-      simulation.alpha(0.8).restart();
+      simulation.alpha(alpha).restart();
 
       simulation.on("tick", () => {
         container.selectAll(".node-group")
@@ -1486,7 +1507,44 @@
         
         if (step.tempNode) {
           if (!graphNodes.find(n => n.id === step.tempNode.id)) {
-            graphNodes.push({ ...step.tempNode });
+            const newNode = { ...step.tempNode };
+            
+            // Set initial position near the center of the viewport or parent nodes to prevent aggressive spring effect
+            let refX = width / 2;
+            let refY = height / 2 - 50;
+
+            // Check if there is a relationship in tempLink or highlightLinks connecting to this node
+            let parentNode = null;
+            if (step.tempLink) {
+              const otherId = step.tempLink.source === newNode.id ? step.tempLink.target : step.tempLink.source;
+              parentNode = graphNodes.find(n => n.id === otherId);
+            }
+            if (!parentNode) {
+              const highlightLinks = step.highlightLinks || [];
+              for (const linkId of highlightLinks) {
+                const linkObj = graphLinks.find(l => l.id === linkId);
+                if (linkObj) {
+                  const sourceId = typeof linkObj.source === 'object' ? linkObj.source.id : linkObj.source;
+                  const targetId = typeof linkObj.target === 'object' ? linkObj.target.id : linkObj.target;
+                  const otherId = sourceId === newNode.id ? targetId : sourceId;
+                  parentNode = graphNodes.find(n => n.id === otherId);
+                  if (parentNode) break;
+                }
+              }
+            }
+
+            if (parentNode && parentNode.x !== undefined && parentNode.y !== undefined) {
+              refX = parentNode.x;
+              refY = parentNode.y;
+            }
+
+            // Introduce slight jitter to prevent exact overlapping coordinates
+            newNode.x = refX + (Math.random() - 0.5) * 30;
+            newNode.y = refY + (Math.random() - 0.5) * 30;
+            newNode.vx = 0;
+            newNode.vy = 0;
+
+            graphNodes.push(newNode);
             datasetChanged = true;
           }
         }
@@ -1505,7 +1563,8 @@
         }
 
         if (datasetChanged) {
-          updateGraph();
+          // Use a very low alpha value (0.2) to restart the simulation gently without exploding existing node layout
+          updateGraph(0.2);
         }
 
         clearHighlights();

@@ -4,7 +4,7 @@ except ImportError:
     GraphDatabase = None
 
 class Neo4jLoader:
-    def __init__(self, uri="bolt://localhost:7687", auth=("neo4j", "password")):
+    def __init__(self, uri="bolt://localhost:8544", auth=("neo4j", "password")):
         self.uri = uri
         self.auth = auth
         self.driver = None
@@ -20,7 +20,7 @@ class Neo4jLoader:
 from neo4j import GraphDatabase
 import csv
 
-uri = "bolt://localhost:7687"
+uri = "bolt://localhost:8544"
 driver = GraphDatabase.driver(uri, auth=("neo4j", "password"))
 
 def load_data(tx):
